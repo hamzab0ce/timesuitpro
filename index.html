@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Suite Pro</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --background: #2d3436;
+            --card-bg: #404040;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .language-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        select {
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .clock-card, .timer-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .city {
+            color: var(--primary);
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .time {
+            font-size: 2em;
+            margin: 10px 0;
+            letter-spacing: 3px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-radius: 8px;
+            width: 80px;
+            text-align: center;
+            margin: 0 5px;
+        }
+
+        .timer-display {
+            font-size: 3em;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="language-selector">
+            <select id="languageSelect" onchange="changeLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+            </select>
+        </div>
+        
+        <h1 id="title">🕒 Time Suite Pro</h1>
+        
+        <!-- Sección Relojes Mundiales -->
+        <section class="section">
+            <h2 id="worldClocksTitle">🌍 World Clocks</h2>
+            <div class="grid">
+                <div class="clock-card">
+                    <p class="city" data-city="berlin"></p>
+                    <div class="time" id="berlin"></div>
+                </div>
+                <div class="clock-card">
+                    <p class="city" data-city="madrid"></p>
+                    <div class="time" id="madrid"></div>
+                </div>
+                <div class="clock-card">
+                    <p class="city" data-city="casablanca"></p>
+                    <div class="time" id="casablanca"></div>
+                </div>
+                <div class="clock-card">
+                    <p class="city" data-city="moscow"></p>
+                    <div class="time" id="moscu"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Cronómetro -->
+        <section class="section">
+            <h2 id="stopwatchTitle">⏱️ Stopwatch</h2>
+            <div class="timer-display" id="stopwatch">00:00:00</div>
+            <div class="controls">
+                <button onclick="startStopwatch()" id="startStop"></button>
+                <button onclick="resetStopwatch()" id="resetStopwatch"></button>
+            </div>
+        </section>
+
+        <!-- Sección Temporizador -->
+        <section class="section">
+            <h2 id="timerTitle">⏳ Timer</h2>
+            <div class="timer-display" id="countdown">00:00:00</div>
+            <div style="margin: 20px 0;">
+                <input type="number" id="hours" placeholder="H" min="0">
+                <input type="number" id="minutes" placeholder="M" min="0" max="59">
+                <input type="number" id="seconds" placeholder="S" min="0" max="59">
+            </div>
+            <div class="controls">
+                <button onclick="startTimer()" id="startTimer"></button>
+                <button onclick="resetTimer()" id="resetTimer"></button>
+            </div>
+        </section>
+    </div>
+
+    <audio id="alarmSound">
+        <source src="data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQZDiIsCB0s/h+e6TNoMWC4GycHggT9Q3bHYMWC4GycHghT9Q3bHYMWC4GycHghT7Q3bHYMP//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQZDiIsCB0s/h+e6TNoMWC4GycHggT9Q3bHYMWC4GycHghT9Q3bHYMWC4GycHghT7Q3bHYMP//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQZDiIsCB0s/h+e6TNoMWC4GycHggT9Q3bHYMWC4GycHghT9Q3bHYMWC4GycHghT7Q3bHYMP//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQZDiIsCB0s/h+e6TNoMWC4GycHggT9Q3bHYMWC4GycHghT9Q3bHYMWC4GycHghT7Q3bHYMP" type="audio/wav">
+    </audio>
+
+    <script>
+        // Configuración de idioma
+        let currentLang = navigator.language.split('-')[0];
+        if (!['en', 'es', 'de'].includes(currentLang)) currentLang = 'en';
+        
+        const translations = {
+            en: {
+                title: "🕒 Time Suite Pro",
+                worldClocksTitle: "🌍 World Clocks",
+                stopwatchTitle: "⏱️ Stopwatch",
+                timerTitle: "⏳ Timer",
+                start: "Start",
+                stop: "Stop",
+                reset: "Reset",
+                resume: "Resume",
+                hours: "H",
+                minutes: "M",
+                seconds: "S",
+                cities: {
+                    berlin: "BERLIN",
+                    madrid: "MADRID",
+                    casablanca: "CASABLANCA",
+                    moscow: "MOSCOW"
+                }
+            },
+            es: {
+                title: "🕒 Time Suite Pro",
+                worldClocksTitle: "🌍 Relojes Mundiales",
+                stopwatchTitle: "⏱️ Cronómetro",
+                timerTitle: "⏳ Temporizador",
+                start: "Iniciar",
+                stop: "Detener",
+                reset: "Reiniciar",
+                resume: "Continuar",
+                hours: "H",
+                minutes: "M",
+                seconds: "S",
+                cities: {
+                    berlin: "BERLÍN",
+                    madrid: "MADRID",
+                    casablanca: "CASABLANCA",
+                    moscow: "MOSCÚ"
+                }
+            },
+            de: {
+                title: "🕒 Time Suite Pro",
+                worldClocksTitle: "🌍 Weltuhren",
+                stopwatchTitle: "⏱️ Stoppuhr",
+                timerTitle: "⏳ Timer",
+                start: "Starten",
+                stop: "Stopp",
+                reset: "Zurücksetzen",
+                resume: "Fortsetzen",
+                hours: "S",
+                minutes: "M",
+                seconds: "S",
+                cities: {
+                    berlin: "BERLIN",
+                    madrid: "MADRID",
+                    casablanca: "CASABLANCA",
+                    moscow: "MOSKAU"
+                }
+            }
+        };
+
+        // Función para cambiar idioma
+        function changeLanguage(lang) {
+            currentLang = lang;
+            applyTranslations();
+            updateClockCities();
+            document.getElementById('languageSelect').value = lang;
+        }
+
+        // Aplicar traducciones
+        function applyTranslations() {
+            const t = translations[currentLang];
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('worldClocksTitle').textContent = t.worldClocksTitle;
+            document.getElementById('stopwatchTitle').textContent = t.stopwatchTitle;
+            document.getElementById('timerTitle').textContent = t.timerTitle;
+            
+            document.getElementById('startStop').textContent = stopwatchRunning ? t.stop : t.start;
+            document.getElementById('resetStopwatch').textContent = t.reset;
+            document.getElementById('startTimer').textContent = t.start;
+            document.getElementById('resetTimer').textContent = t.reset;
+            
+            document.getElementById('hours').placeholder = t.hours;
+            document.getElementById('minutes').placeholder = t.minutes;
+            document.getElementById('seconds').placeholder = t.seconds;
+        }
+
+        // Actualizar nombres de ciudades
+        function updateClockCities() {
+            document.querySelectorAll('.city').forEach(cityElement => {
+                const cityKey = cityElement.getAttribute('data-city');
+                cityElement.textContent = translations[currentLang].cities[cityKey];
+            });
+        }
+
+        // Relojes Mundiales
+        function updateWorldClocks() {
+            const options = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: ''
+            };
+
+            const locale = currentLang === 'en' ? 'en-US' : currentLang === 'es' ? 'es-ES' : 'de-DE';
+
+            document.getElementById('berlin').textContent = 
+                new Date().toLocaleTimeString(locale, { ...options, timeZone: 'Europe/Berlin' });
+            
+            document.getElementById('madrid').textContent = 
+                new Date().toLocaleTimeString(locale, { ...options, timeZone: 'Europe/Madrid' });
+            
+            document.getElementById('casablanca').textContent = 
+                new Date().toLocaleTimeString(locale, { ...options, timeZone: 'Africa/Casablanca' });
+            
+            document.getElementById('moscu').textContent = 
+                new Date().toLocaleTimeString(locale, { ...options, timeZone: 'Europe/Moscow' });
+        }
+
+        // Cronómetro
+        let stopwatchRunning = false;
+        let stopwatchInterval;
+        let stopwatchTime = 0;
+
+        function startStopwatch() {
+            if (!stopwatchRunning) {
+                stopwatchRunning = true;
+                document.getElementById('startStop').textContent = translations[currentLang].stop;
+                stopwatchInterval = setInterval(() => {
+                    stopwatchTime++;
+                    updateStopwatchDisplay();
+                }, 1000);
+            } else {
+                stopwatchRunning = false;
+                document.getElementById('startStop').textContent = translations[currentLang].resume;
+                clearInterval(stopwatchInterval);
+            }
+        }
+
+        function resetStopwatch() {
+            stopwatchRunning = false;
+            clearInterval(stopwatchInterval);
+            stopwatchTime = 0;
+            updateStopwatchDisplay();
+            document.getElementById('startStop').textContent = translations[currentLang].start;
+        }
+
+        function updateStopwatchDisplay() {
+            const hours = Math.floor(stopwatchTime / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((stopwatchTime % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (stopwatchTime % 60).toString().padStart(2, '0');
+            document.getElementById('stopwatch').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Temporizador
+        let timerInterval;
+        let timeLeft = 0;
+        const alarmSound = document.getElementById('alarmSound');
+
+        function startTimer() {
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+            
+            timeLeft = (hours * 3600) + (minutes * 60) + seconds;
+            
+            if (timeLeft > 0 && !timerInterval) {
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        playAlarm();
+                        flashTimerDisplay();
+                    }
+                }, 1000);
+            }
+        }
+
+        function playAlarm() {
+            alarmSound.play();
+            setTimeout(() => alarmSound.pause(), 2000);
+        }
+
+        function flashTimerDisplay() {
+            const display = document.getElementById('countdown');
+            display.style.color = '#ff4757';
+            setTimeout(() => {
+                display.style.color = 'white';
+            }, 2000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timeLeft = 0;
+            updateTimerDisplay();
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            document.getElementById('countdown').style.color = 'white';
+            document.getElementById('hours').value = '';
+            document.getElementById('minutes').value = '';
+            document.getElementById('seconds').value = '';
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('countdown').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Inicialización
+        document.getElementById('languageSelect').value = currentLang;
+        applyTranslations();
+        updateClockCities();
+        setInterval(updateWorldClocks, 1000);
+        updateWorldClocks();
+    </script>
+</body>
+</html>
